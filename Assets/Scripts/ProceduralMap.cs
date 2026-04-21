@@ -1,33 +1,35 @@
 using UnityEngine;
-using UnityEngine.UIElements;
 
 [ExecuteAlways]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class ProceduralMap : MonoBehaviour
 {
-    [SerializeField] int xSize = 20, zSize = 20;
+    [Header("Map Size")]
+    [SerializeField] int xSize = 20;
+    [SerializeField] int zSize = 20;
+
     [Header("Falloff")]
     [Range(0f, 1f)][SerializeField] float falloffStart = 0.3f;
     [Range(0f, 1f)][SerializeField] float falloffEnd = 0.7f;
 
-
-    [Header("Perlin Noise")]
-    [Range(0.01f, 1f)][SerializeField] float noiseScale = 0.3f;
+    [Header("Height")]
     [SerializeField] float heightMultiplier = 4f;
+    [SerializeField] AnimationCurve heightCurve;       
+
+    [Header("Noise")]
+    [Range(0.01f, 1f)][SerializeField] float noiseScale = 0.3f;
     [Range(1, 6)][SerializeField] int octaves = 3;
-    [Range(0f, 1f)][SerializeField] float persistence = 0.5f;
-    [Range(1f, 4f)][SerializeField] float lacunarity = 2f;
-
+    [Range(0f, 1f)][SerializeField] float persistence = 0.5f;  
+    [Range(1f, 4f)][SerializeField] float lacunarity = 2f;   
     [SerializeField] int seed = 0;
-    Color[] colors; 
-    public Gradient gradient;
 
-    float minTerrainHeight;
-    float maxTerrainHeight;
+    [Header("Color")]
+    [SerializeField] Gradient gradient; 
 
     Mesh mesh;
     Vector3[] vertices;
     int[] triangles;
+    Color[] colors;
 
     void OnEnable() => Regenerate();
 
@@ -41,93 +43,90 @@ public class ProceduralMap : MonoBehaviour
 
     void Regenerate()
     {
-        if (!mesh)
-        {
-            mesh = new Mesh();
-            GetComponent<MeshFilter>().mesh = mesh;
-        }
+        if (!mesh) { mesh = new Mesh(); GetComponent<MeshFilter>().mesh = mesh; }
 
-        float[,] falloff = FallOffGenerator.Generate(
-            new Vector2Int(xSize + 1, zSize + 1), falloffStart, falloffEnd);
+        float[,] falloff = FallOffGenerator.Generate(new Vector2Int(xSize + 1, zSize + 1), falloffStart, falloffEnd);
 
-        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
-        maxTerrainHeight = vertices[0].y;
-        minTerrainHeight = vertices[0].y;
-
-        for (int i = 0, z = 0; z <= zSize; z++)
-        {
-            for (int x = 0; x <= xSize; x++, i++)
-            {
-                vertices[i] = CalculatePos(x, z, falloff);
-                if (vertices[i].y > maxTerrainHeight)
-                    maxTerrainHeight = vertices[i].y;
-                if (vertices[i].y < maxTerrainHeight)
-                    minTerrainHeight = vertices[i].y;
-            }
-
-        }
-        triangles = new int[xSize * zSize * 6];
-
-
-        int vert = 0;
-        int tris = 0;
-
-        for (int z = 0; z < zSize; z++)
-        {
-        
-            for (int x = 0; x < xSize; x++)
-            {
-                triangles[tris] = vert; 
-                triangles[tris + 1] = vert + xSize + 1;
-                triangles[tris + 2] = vert + 1; 
-                triangles[tris + 3] = vert + 1;
-                triangles[tris + 4] = vert + xSize + 1; 
-                triangles[tris + 5] = vert + xSize + 2;
-
-                vert++;
-                tris += 6;
-            }
-            vert++;
-        }
-
-        colors = new Color[vertices.Length];
-
-        for(int i = 0, z = 0; z<= zSize; z++)
-        {
-            for(int x = 0;x<= xSize; x++)
-            {
-                float height = Mathf.InverseLerp(minTerrainHeight,maxTerrainHeight, vertices[i].y);
-                colors[i] = gradient.Evaluate(height);
-                i++;
-            }
-
-        }
-
+        BuildVertices(falloff);
+        BuildTriangles();
+        BuildColors();
 
         mesh.Clear();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
-        mesh.RecalculateNormals();
         mesh.colors = colors;
+        mesh.RecalculateNormals();
     }
 
-    Vector3 CalculatePos(int x, int z, float[,] falloff)
+    void BuildVertices(float[,] falloff)
+    {
+        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
+
+        for (int i = 0, z = 0; z <= zSize; z++)
+            for (int x = 0; x <= xSize; x++, i++)
+                vertices[i] = SampleVertex(x, z, falloff);
+    }
+    Vector3 SampleVertex(int x, int z, float[,] falloff)
     {
         System.Random rng = new System.Random(seed);
-        float amplitude = 1f, frequency = 1f, y = 0f;
+
+        float amplitude = 1f, frequency = 1f, height = 0f;
+        float maxPossible = 0f, amp = 1f;
+
+        for (int i = 0; i < octaves; i++) { maxPossible += amp; amp *= persistence; }
 
         for (int i = 0; i < octaves; i++)
         {
-            float offsetX = rng.Next(-100000, 100000);
-            float offsetZ = rng.Next(-100000, 100000);
-
-            y += Mathf.PerlinNoise(x * noiseScale * frequency + offsetX,
-                                   z * noiseScale * frequency + offsetZ) * amplitude;
+            float sampleX = x * noiseScale * frequency + rng.Next(-100000, 100000);
+            float sampleZ = z * noiseScale * frequency + rng.Next(-100000, 100000);
+            height += Mathf.PerlinNoise(sampleX, sampleZ) * amplitude;
             amplitude *= persistence;
             frequency *= lacunarity;
         }
 
-        return new Vector3(x, y * falloff[x, z] * heightMultiplier, z);
+        float normalized = height / maxPossible;          
+        height = heightCurve.Evaluate(normalized);       
+        height = height * falloff[x, z] * heightMultiplier;
+        return new Vector3(x, height, z);
+
+    }
+
+    void BuildTriangles()
+    {
+        triangles = new int[xSize * zSize * 6];
+        int vert = 0, tris = 0;
+
+        for (int z = 0; z < zSize; z++)
+        {
+            for (int x = 0; x < xSize; x++)
+            {
+                triangles[tris] = vert;
+                triangles[tris + 1] = vert + xSize + 1;
+                triangles[tris + 2] = vert + 1;
+                triangles[tris + 3] = vert + 1;
+                triangles[tris + 4] = vert + xSize + 1;
+                triangles[tris + 5] = vert + xSize + 2;
+                vert++; tris += 6;
+            }
+            vert++;
+        }
+    }
+
+    void BuildColors()
+    {
+        float min = float.MaxValue, max = float.MinValue;
+        foreach (var v in vertices)
+        {
+            if (v.y < min) min = v.y;
+            if (v.y > max) max = v.y;
+        }
+
+        colors = new Color[vertices.Length];
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            float t = Mathf.InverseLerp(min, max, vertices[i].y);
+            colors[i] = gradient.Evaluate(t);
+        }
     }
 
     void OnDrawGizmos()
@@ -137,6 +136,4 @@ public class ProceduralMap : MonoBehaviour
         foreach (var v in vertices)
             Gizmos.DrawSphere(transform.TransformPoint(v), 0.08f);
     }
-
-
 }
