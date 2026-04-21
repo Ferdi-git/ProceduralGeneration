@@ -1,97 +1,95 @@
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
 
+[ExecuteAlways]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class ProceduralMap : MonoBehaviour
 {
-    Mesh mesh;
+    [SerializeField] int xSize = 20, zSize = 20;
+    [Header("Falloff")]
+    [Range(0f, 1f)][SerializeField] float falloffStart = 0.3f;
+    [Range(0f, 1f)][SerializeField] float falloffEnd = 0.7f;
 
-    Vector3[] verticles;
+
+    [Header("Perlin Noise")]
+    [Range(0.01f, 1f)][SerializeField] float noiseScale = 0.3f;
+    [Range(1f, 10f)][SerializeField] float heightMultiplier = 4f;
+    [Range(1, 6)][SerializeField] int octaves = 3;
+    [Range(0f, 1f)][SerializeField] float persistence = 0.5f;
+    [Range(1f, 4f)][SerializeField] float lacunarity = 2f;
+
+    [SerializeField] int seed = 0;
+
+
+    Mesh mesh;
+    Vector3[] vertices;
     int[] triangles;
 
-    [SerializeField] int xSize=20;
-    [SerializeField] int zSize=20;
+    void OnEnable() => Regenerate();
 
-    private void Start()
+    void OnValidate()
     {
-        mesh = new Mesh();
-        GetComponent<MeshFilter>().mesh = mesh;
-
-        CreateMesh();
-
+        if (mesh == null) return;
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.delayCall += () => { if (this) Regenerate(); };
+#endif
     }
 
-    private void Update()
+    void Regenerate()
     {
-        UpdateMesh();
-    }
-
-    private void CreateMesh()
-    {
-        verticles = new Vector3[(xSize + 1) * (zSize +1)];
-        
-
-        for (int i = 0, z = 0; z <= zSize ; z++)
+        if (!mesh)
         {
-
-            for (int x = 0; x <= xSize ; x++)
-            {
-                float y = Mathf.PerlinNoise(x* 0.3f,z *0.3f) *2f;
-                verticles[i] = new Vector3(x, y, z);
-                i++;
-            }
+            mesh = new Mesh();
+            GetComponent<MeshFilter>().mesh = mesh;
         }
+
+        float[,] falloff = FallOffGenerator.Generate(
+            new Vector2Int(xSize + 1, zSize + 1), falloffStart, falloffEnd);
+
+        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
+        for (int i = 0, z = 0; z <= zSize; z++)
+            for (int x = 0; x <= xSize; x++, i++)
+                vertices[i] = CalculatePos(x, z, falloff);
 
         triangles = new int[xSize * zSize * 6];
-
-
-
-        int vert = 0; 
-        int tris = 0;
-
-
-        for (int z = 0; z < zSize; z++)
-        {
-            for (int x = 0; x < xSize; x++)
+        for (int t = 0, v = 0, z = 0; z < zSize; z++, v++)
+            for (int x = 0; x < xSize; x++, v++, t += 6)
             {
-                triangles[tris + 0] = vert + 0;
-                triangles[tris + 1] = vert + xSize + 1;
-                triangles[tris + 2] = vert + 1;
-                triangles[tris + 3] = vert + 1;
-                triangles[tris + 4] = vert + xSize + 1;
-                triangles[tris + 5] = vert + xSize + 2;
-
-                vert++;
-                tris += 6;
+                triangles[t] = v; triangles[t + 1] = v + xSize + 1;
+                triangles[t + 2] = v + 1; triangles[t + 3] = v + 1;
+                triangles[t + 4] = v + xSize + 1; triangles[t + 5] = v + xSize + 2;
             }
-            vert++;
 
-        }
-    }
-
-
-    private void UpdateMesh()
-    {
         mesh.Clear();
-
-        mesh.vertices = verticles;
+        mesh.vertices = vertices;
         mesh.triangles = triangles;
-
         mesh.RecalculateNormals();
     }
 
-
-    private void OnDrawGizmos()
+    Vector3 CalculatePos(int x, int z, float[,] falloff)
     {
-        
-        if(verticles == null) return;
+        System.Random rng = new System.Random(seed);
+        float amplitude = 1f, frequency = 1f, y = 0f;
 
-        for(int i = 0; i < verticles.Length; i++)
+        for (int i = 0; i < octaves; i++)
         {
-            Gizmos.DrawSphere(verticles[i], .1f);
+            float offsetX = rng.Next(-100000, 100000);
+            float offsetZ = rng.Next(-100000, 100000);
+
+            y += Mathf.PerlinNoise(x * noiseScale * frequency + offsetX,
+                                   z * noiseScale * frequency + offsetZ) * amplitude;
+            amplitude *= persistence;
+            frequency *= lacunarity;
         }
 
+        return new Vector3(x, y * falloff[x, z] * heightMultiplier, z);
+    }
 
+    void OnDrawGizmos()
+    {
+        if (vertices == null) return;
+        Gizmos.color = Color.yellow;
+        foreach (var v in vertices)
+            Gizmos.DrawSphere(transform.TransformPoint(v), 0.08f);
     }
 
 
