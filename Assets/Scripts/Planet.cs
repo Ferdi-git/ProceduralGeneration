@@ -4,9 +4,13 @@ public class Planet : MonoBehaviour
 {
     [Range(2, 256)]
     public int resolution = 10;
+    public bool autoUpdate = true;
 
     public ShapeSettings shapeSettings;
     public ColorSettings colorSettings;
+
+    [HideInInspector] public bool shapeSettingsFaldout;
+    [HideInInspector] public bool colorSettingsFaldout;
 
     ShapeGenerator shapeGenerator;
 
@@ -63,12 +67,14 @@ public class Planet : MonoBehaviour
 
     public void OnShapeSettingsUpdated()
     {
+        if (!autoUpdate) return;
         Initialize();
         GenerateMesh();
     }
 
     public void OnColourSettingsUpdated()
     {
+        if (!autoUpdate) return;
         Initialize();
         GenerateColours();
     }

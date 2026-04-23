@@ -7,32 +7,55 @@ public class PlanetEditor : Editor
 {
 
     Planet planet;
+    Editor shapeEditor;
+    Editor colourEditor;
+
 
     public override void OnInspectorGUI()
     {
-        base.OnInspectorGUI();
+        using(var check = new EditorGUI.ChangeCheckScope())
+        {
+            base.OnInspectorGUI();
+            if (check.changed)
+            {
+                planet.GeneratePlanet();
+            }
 
-        DrawSettingsEditor(planet.shapeSettings, planet.OnShapeSettingsUpdated);
-        DrawSettingsEditor(planet.colorSettings, planet.OnColourSettingsUpdated);
+        }
+
+        if(GUILayout.Button("Generate Planet"))
+        {
+            planet.GeneratePlanet();
+        }
+
+        DrawSettingsEditor(planet.shapeSettings, planet.OnShapeSettingsUpdated , ref  planet.shapeSettingsFaldout, ref shapeEditor);
+        DrawSettingsEditor(planet.colorSettings, planet.OnColourSettingsUpdated, ref planet.colorSettingsFaldout, ref colourEditor);
     }
 
 
-    void DrawSettingsEditor(Object settings, System.Action onSettingsUpdated)
+    void DrawSettingsEditor(Object settings, System.Action onSettingsUpdated, ref bool foldout, ref Editor editor)
     {
+        if (settings == null) return;
+        
+        foldout = EditorGUILayout.InspectorTitlebar(foldout, settings);
+
         using (var check = new EditorGUI.ChangeCheckScope())
         {
-            EditorGUILayout.InspectorTitlebar(true, settings);
-            Editor editor = CreateEditor(settings);
+            if (!foldout) return;
+                
+            CreateCachedEditor(settings, null, ref editor);
             editor.OnInspectorGUI();
 
-            if(check.changed)
+            if (check.changed)
             {
-                if(onSettingsUpdated != null)
+                if (onSettingsUpdated != null)
                 {
                     onSettingsUpdated();
                 }
             }
+                
         }
+        
     }
 
     private void OnEnable()
