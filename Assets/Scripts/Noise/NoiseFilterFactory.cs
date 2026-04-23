@@ -1,16 +1,18 @@
 using UnityEngine;
 
-public class NoiseFilterFactory : MonoBehaviour
+public static class NoiseFilterFactory 
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public static INoiseFilter CreateNoiseFilter(NoiseSettings settings)
     {
-        
+        switch(settings.filterType)
+        {
+            case NoiseSettings.FilterType.Simple:
+                return new SimpleNoiseFilter(settings.simpleNoiseSettings);
+            case NoiseSettings.FilterType.Ridgid:
+                return new RidgidNoiseFilter(settings.ridgidNoiseSettings);
+
+        }
+        return null;    
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
