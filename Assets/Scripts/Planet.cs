@@ -65,8 +65,6 @@ public class Planet : MonoBehaviour
         GenerateColours();
     }
 
-
-
     public void OnShapeSettingsUpdated()
     {
         if (!autoUpdate) return;

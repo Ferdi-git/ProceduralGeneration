@@ -3,7 +3,9 @@ using UnityEngine;
 
 public class FirstPersonMovement : MonoBehaviour
 {
+
     public float speed = 5;
+
 
     [Header("Running")]
     public bool canRun = true;

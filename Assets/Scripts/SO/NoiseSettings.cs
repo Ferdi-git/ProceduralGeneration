@@ -3,6 +3,7 @@ using UnityEngine;
 [System.Serializable]
 public class NoiseSettings
 {
+
     public enum FilterType
     {
         Simple,
@@ -18,6 +19,7 @@ public class NoiseSettings
     [System.Serializable]
     public class SimpleNoiseSettings
     {
+        public int seed = 0;
         public float strengh = 1;
         [Range(1, 8)]
         public int numLayers = 1;

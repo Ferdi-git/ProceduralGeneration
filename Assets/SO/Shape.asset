@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfeb3dc33e591a3489b9bf61fe0dd810, type: 3}
   m_Name: Shape
   m_EditorClassIdentifier: Assembly-CSharp::ShapeSettings
-  planeteRadius: 10
+  planeteRadius: 100
   noiseLayers:
   - enabled: 1
     useFirstLayerAsMask: 0
@@ -74,6 +74,6 @@ MonoBehaviour:
         baseRoughness: 0.5
         roughness: 0.91
         persistence: 0.11
-        center: {x: 0, y: 0, z: 0}
+        center: {x: 1.53, y: 0, z: 0}
         minValue: 0
         weightMult: 0.8

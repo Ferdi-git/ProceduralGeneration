@@ -13,7 +13,7 @@ public class SimpleNoiseFilter : INoiseFilter
 
     public float Evaluate(Vector3 point)
     {
-
+        noise = new Noise(settings.seed);
         float noiseValue = 0;
         float frequency = settings.baseRoughness;
         float amplitude = 1;
