@@ -6,6 +6,7 @@ public class ShapeSettings : ScriptableObject
     public float planeteRadius = 1;
     public NoiseLayer[] noiseLayers;
 
+
     [System.Serializable]
     public class NoiseLayer
     {

@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfeb3dc33e591a3489b9bf61fe0dd810, type: 3}
+  m_Name: WeirdShape
+  m_EditorClassIdentifier: Assembly-CSharp::ShapeSettings
+  planeteRadius: 100
+  noiseLayers:
+  - enabled: 1
+    useFirstLayerAsMask: 0
+    noiseSetings:
+      filterType: 0
+      simpleNoiseSettings:
+        seed: 124
+        strengh: 0.26
+        numLayers: 5
+        baseRoughness: 1.95
+        roughness: 2.33
+        persistence: 0.73
+        center: {x: 6.72, y: 7.72, z: 0}
+        minValue: 1.79
+      ridgidNoiseSettings:
+        seed: 0
+        strengh: 0
+        numLayers: 0
+        baseRoughness: 0
+        roughness: 0
+        persistence: 0
+        center: {x: 0, y: 0, z: 0}
+        minValue: 0
+        weightMult: 0
+  - enabled: 1
+    useFirstLayerAsMask: 0
+    noiseSetings:
+      filterType: 1
+      simpleNoiseSettings:
+        seed: 0
+        strengh: -0.1
+        numLayers: 6
+        baseRoughness: 4.36
+        roughness: 0.17
+        persistence: 0.52
+        center: {x: 0, y: 0, z: 0}
+        minValue: 0.92
+      ridgidNoiseSettings:
+        seed: 0
+        strengh: -0.04
+        numLayers: 6
+        baseRoughness: 4.36
+        roughness: 0.17
+        persistence: 0.52
+        center: {x: 0, y: 0, z: 0}
+        minValue: 0.92
+        weightMult: 1
